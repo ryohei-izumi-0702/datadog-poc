@@ -1,0 +1,52 @@
+* @DataDog/datadog-ci
+
+
+# Commands (grouped by product)
+
+## CI Visibility
+src/commands/junit   @DataDog/ci-app-libraries
+src/commands/gate    @DataDog/ci-app-libraries
+src/commands/metric  @DataDog/ci-app-libraries
+src/commands/tag     @DataDog/ci-app-libraries
+src/commands/trace   @DataDog/ci-app-libraries
+
+## Static Analysis
+src/commands/sarif   @DataDog/static-analysis-core
+src/commands/sbom    @DataDog/static-analysis-core
+
+## RUM
+src/commands/dsyms            @DataDog/rum-mobile
+src/commands/flutter-symbols  @DataDog/rum-mobile
+src/commands/react-native     @DataDog/rum-mobile
+src/commands/sourcemaps       @DataDog/rum-browser
+
+## Serverless
+src/commands/lambda         @DataDog/serverless
+src/commands/stepfunctions  @DataDog/serverless
+src/commands/cloud-run      @DataDog/serverless
+
+## Source Code Integration
+src/commands/git-metadata  @DataDog/source-code-integration
+
+## Synthetics
+src/commands/synthetics  @DataDog/synthetics-ct
+
+
+# Shared utilities
+
+## Git
+src/helpers/git  @DataDog/ci-app-libraries @DataDog/source-code-integration
+
+## CI
+src/helpers/file.ts                              @DataDog/ci-app-libraries
+src/helpers/ci.ts                                @DataDog/ci-app-libraries @DataDog/synthetics-ct
+src/helpers/tags.ts                              @DataDog/ci-app-libraries @DataDog/synthetics-ct
+src/helpers/user-provided-git.ts                 @DataDog/ci-app-libraries @DataDog/synthetics-ct
+src/helpers/**tests**/ci-env                     @DataDog/ci-app-libraries @DataDog/synthetics-ct
+src/helpers/**tests**/ci.test.ts                 @DataDog/ci-app-libraries @DataDog/synthetics-ct
+src/helpers/**tests**/tags.test.ts               @DataDog/ci-app-libraries @DataDog/synthetics-ct
+src/helpers/**tests**/user-provided-git.test.ts  @DataDog/ci-app-libraries @DataDog/synthetics-ct
+
+
+# Documentation
+*.md  @DataDog/documentation

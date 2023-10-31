@@ -1,0 +1,529 @@
+import fs from 'fs'
+import fsp from 'fs/promises'
+import {Writable} from 'stream'
+
+import {BaseContext} from 'clipanion/lib/advanced'
+
+import {Device, ExecutionRule, Result, Test} from '../../interfaces'
+import {Args, getDefaultSuiteStats, getDefaultTestCaseStats, JUnitReporter, XMLTestCase} from '../../reporters/junit'
+import {RunTestsCommand} from '../../run-tests-command'
+
+import {
+  BATCH_ID,
+  getApiResult,
+  getApiServerResult,
+  getApiTest,
+  getBrowserResult,
+  getBrowserServerResult,
+  getBrowserTest,
+  getFailedBrowserResult,
+  getFailedMultiStepsServerResult,
+  getMultiStep,
+  getMultiStepsServerResult,
+  getStep,
+  getSummary,
+  MOCK_BASE_URL,
+} from '../fixtures'
+
+const globalTestMock = getApiTest('123-456-789')
+const globalStepMock = getStep()
+const globalResultMock = getBrowserResult('1', globalTestMock)
+const globalSummaryMock = getSummary()
+
+describe('Junit reporter', () => {
+  const writeMock: Writable['write'] = jest.fn()
+  const commandMock: Args = {
+    context: ({stdout: {write: writeMock}} as unknown) as BaseContext,
+    jUnitReport: 'junit',
+    runName: 'Test Suite name',
+  }
+
+  let reporter: JUnitReporter
+
+  describe('constructor', () => {
+    beforeEach(() => {
+      reporter = new JUnitReporter(commandMock as RunTestsCommand)
+    })
+
+    it("should append '.xml' to destination if isn't there", () => {
+      expect(reporter['destination']).toBe('junit.xml')
+    })
+
+    it('should give a default run name', () => {
+      expect(new JUnitReporter({...commandMock, runName: undefined})['json'].testsuites.$.name).toBe('Undefined run')
+    })
+  })
+
+  describe('runEnd', () => {
+    beforeEach(() => {
+      reporter = new JUnitReporter(commandMock as RunTestsCommand)
+      jest.spyOn(fs, 'writeFileSync')
+      jest.spyOn(reporter['builder'], 'buildObject')
+    })
+
+    it('should build the xml', async () => {
+      reporter.runEnd(globalSummaryMock, '')
+      expect(reporter['builder'].buildObject).toHaveBeenCalledWith(reporter['json'])
+      expect(fs.writeFileSync).toHaveBeenCalledWith('junit.xml', expect.any(String), 'utf8')
+      expect(writeMock).toHaveBeenCalledTimes(1)
+
+      // Cleaning
+      await fsp.unlink(reporter['destination'])
+    })
+
+    it('should gracefully fail', async () => {
+      jest.spyOn(reporter['builder'], 'buildObject').mockImplementation(() => {
+        throw new Error('Fail')
+      })
+
+      reporter.runEnd(globalSummaryMock, '')
+
+      expect(fs.writeFileSync).not.toHaveBeenCalled()
+      expect(writeMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('should create the file', async () => {
+      reporter['destination'] = 'junit/report.xml'
+      reporter.runEnd(globalSummaryMock, '')
+      const stat = await fsp.stat(reporter['destination'])
+      expect(stat).toBeDefined()
+
+      // Cleaning
+      await fsp.unlink(reporter['destination'])
+      await fsp.rmdir('junit')
+    })
+
+    it('should not throw on existing directory', async () => {
+      await fsp.mkdir('junit')
+      reporter['destination'] = 'junit/report.xml'
+      reporter.runEnd(globalSummaryMock, '')
+
+      // Cleaning
+      await fsp.unlink(reporter['destination'])
+      await fsp.rmdir('junit')
+    })
+
+    it('testsuites contains summary properties', async () => {
+      jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {})
+
+      reporter.runEnd(
+        {
+          ...globalSummaryMock,
+          criticalErrors: 1,
+          failed: 2,
+          failedNonBlocking: 3,
+          passed: 4,
+          skipped: 5,
+          testsNotFound: new Set(['a', 'b', 'c']),
+          timedOut: 6,
+        },
+        MOCK_BASE_URL
+      )
+      expect(reporter['json'].testsuites.$).toStrictEqual({
+        batch_id: BATCH_ID,
+        batch_url: `${MOCK_BASE_URL}synthetics/explorer/ci?batchResultId=${BATCH_ID}`,
+        name: 'Test Suite name',
+        tests_critical_error: 1,
+        tests_failed: 2,
+        tests_failed_non_blocking: 3,
+        tests_not_found: 3,
+        tests_passed: 4,
+        tests_skipped: 5,
+        tests_timed_out: 6,
+      })
+    })
+  })
+
+  describe('resultEnd', () => {
+    beforeEach(() => {
+      reporter = new JUnitReporter(commandMock as RunTestsCommand)
+    })
+
+    it('should give a default suite name', () => {
+      reporter.resultEnd(globalResultMock, '')
+      const testsuite = reporter['json'].testsuites.testsuite[0]
+      expect(testsuite.$.name).toBe('Undefined suite')
+    })
+
+    it('should use the same report for tests from same suite', () => {
+      const results = [
+        {...globalResultMock, test: {...globalTestMock, suite: 'same suite'}},
+        {...globalResultMock, test: {...globalTestMock, suite: 'same suite'}},
+      ]
+
+      results.forEach((result) => reporter.resultEnd(result, ''))
+
+      // We should have 1 unique report. Not 2 different ones.
+      expect(reporter['json'].testsuites.testsuite.length).toBe(1)
+
+      // And this unique report should include the 2 tests.
+      expect(reporter['json'].testsuites.testsuite[0].$).toMatchObject({
+        ...getDefaultSuiteStats(),
+        tests: 2,
+      })
+    })
+
+    it('should add stats to the run', () => {
+      reporter.resultEnd({...globalResultMock, test: {...globalTestMock, suite: 'suite 1'}}, '')
+      reporter.resultEnd(
+        {
+          ...globalResultMock,
+          passed: false,
+          result: getFailedMultiStepsServerResult(),
+          test: {
+            ...globalTestMock,
+            suite: 'suite 2',
+          },
+        },
+        ''
+      )
+
+      const [suitePassed, suiteFailed] = reporter['json'].testsuites.testsuite
+
+      expect(suitePassed.$).toMatchObject({
+        ...getDefaultSuiteStats(),
+        tests: 1,
+      })
+      expect(suiteFailed.$).toMatchObject({
+        ...getDefaultSuiteStats(),
+        errors: 0,
+        failures: 1,
+        skipped: 0,
+        tests: 1,
+      })
+    })
+
+    it('should report errors', () => {
+      const browserResult1: Result = {
+        ...globalResultMock,
+        result: {
+          ...getBrowserServerResult(),
+          stepDetails: [
+            {
+              ...getStep(),
+              allowFailure: true,
+              browserErrors: [
+                {
+                  description: 'error description',
+                  name: 'error name',
+                  type: 'error type',
+                },
+                {
+                  description: 'error description',
+                  name: 'error name',
+                  type: 'error type',
+                },
+              ],
+              error: 'error',
+              warnings: [
+                {
+                  message: 'warning message',
+                  type: 'warning type',
+                },
+              ],
+            },
+            getStep(),
+          ],
+        },
+      }
+      const browserResult2: Result = {
+        ...globalResultMock,
+        result: getBrowserServerResult(),
+      }
+      const browserResult3: Result = {
+        ...globalResultMock,
+        result: {...getBrowserServerResult(), failure: {code: 'TIMEOUT', message: 'Result timed out'}},
+        timedOut: true,
+      }
+      const apiResult: Result = {
+        ...globalResultMock,
+        result: {
+          ...getMultiStepsServerResult(),
+          steps: [
+            {
+              ...getMultiStep(),
+              failure: {
+                code: '1',
+                message: 'message',
+              },
+            },
+          ],
+        },
+      }
+      reporter.resultEnd(browserResult1, '')
+      reporter.resultEnd(browserResult2, '')
+      reporter.resultEnd(browserResult3, '')
+      reporter.resultEnd(apiResult, '')
+      const testsuite = reporter['json'].testsuites.testsuite[0]
+      const results = [
+        [1, 2, 0, 1],
+        [0, 0, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 1, 0],
+      ]
+      const entries: [any, XMLTestCase][] = Object.entries(testsuite.testcase)
+      for (const [i, testcase] of entries) {
+        const result = results[i]
+        expect(testcase.allowed_error.length).toBe(result[0])
+        expect(testcase.browser_error.length).toBe(result[1])
+        expect(testcase.failure.length).toBe(result[2])
+        expect(testcase.warning.length).toBe(result[3])
+      }
+    })
+  })
+
+  describe('getTestCase', () => {
+    beforeEach(() => {
+      reporter = new JUnitReporter(commandMock as RunTestsCommand)
+    })
+
+    it('should add stats to the test case - api test', () => {
+      const resultMock = {
+        ...globalResultMock,
+        result: getApiServerResult({passed: false}),
+      }
+      const testCase = reporter['getTestCase'](resultMock, '')
+      expect(testCase.$).toMatchObject({
+        ...getDefaultTestCaseStats(),
+        steps_count: 1,
+        steps_errors: 1,
+        steps_failures: 1,
+      })
+    })
+
+    it('should add stats to the test case - multistep test', () => {
+      const resultMock = {
+        ...globalResultMock,
+        result: getFailedMultiStepsServerResult(),
+      }
+      const testCase = reporter['getTestCase'](resultMock, '')
+      expect(testCase.$).toMatchObject({
+        ...getDefaultTestCaseStats(),
+        steps_allowfailures: 1,
+        steps_count: 4,
+        steps_errors: 2,
+        steps_failures: 2,
+        steps_skipped: 1,
+      })
+    })
+
+    it('should add stats to the test case - browser test', () => {
+      const resultMock = {
+        ...globalResultMock,
+        ...{
+          result: {
+            ...globalResultMock.result,
+            stepDetails: [
+              globalStepMock,
+              {
+                ...globalStepMock,
+                ...{
+                  browserErrors: [{type: 'error', name: 'Error', description: 'Description'}],
+                  error: 'Error',
+                  subTestStepDetails: [globalStepMock],
+                  warnings: [{type: 'warning', message: 'Warning'}],
+                },
+              },
+            ],
+          },
+        },
+      }
+      const testCase = reporter['getTestCase'](resultMock, '')
+      expect(testCase.$).toMatchObject({
+        ...getDefaultTestCaseStats(),
+        steps_count: 3,
+        steps_errors: 2,
+        steps_failures: 1,
+        steps_warnings: 1,
+      })
+    })
+  })
+})
+
+describe('GitLab test report compatibility', () => {
+  const writeMock: Writable['write'] = jest.fn()
+  const commandMock: Args = {
+    context: ({stdout: {write: writeMock}} as unknown) as BaseContext,
+    jUnitReport: 'junit',
+    runName: 'Test Suite name',
+  }
+
+  let reporter: JUnitReporter
+
+  beforeEach(() => {
+    reporter = new JUnitReporter(commandMock as RunTestsCommand)
+  })
+
+  test('all test case names are unique', () => {
+    const locations = ['aws:eu-central-1', 'aws:eu-central-2']
+    const devices = {
+      chrome: {height: 1100, id: 'chrome.laptop_large', width: 1440},
+      firefox: {height: 1100, id: 'firefox.laptop_large', width: 1440},
+    }
+
+    const apiTest = getApiTest('aaa-aaa-aaa', {locations})
+    const browserTest = getBrowserTest('bbb-bbb-bbb', [devices.chrome.id, devices.firefox.id], {locations})
+
+    const getTestCase = (
+      test: Test,
+      resultId: string,
+      {
+        location,
+        device,
+        timedOut,
+      }: {
+        device?: Device
+        location?: string
+        timedOut?: boolean
+      }
+    ): XMLTestCase =>
+      reporter['getTestCase'](
+        {
+          ...(test.type === 'browser' ? getBrowserResult(resultId, test, {device}) : getApiResult(resultId, test)),
+          ...(location && {location}),
+          ...(timedOut && {timedOut}),
+        },
+        ''
+      )
+
+    const testCases = [
+      // API test, location 1
+      getTestCase(apiTest, '1', {location: locations[0]}),
+      // API test, location 2
+      getTestCase(apiTest, '2', {location: locations[1]}),
+      // API test, location 1 (timed out)
+      getTestCase(apiTest, '3', {location: locations[0], timedOut: true}),
+      // API test, location 2 (timed out)
+      getTestCase(apiTest, '4', {location: locations[1], timedOut: true}),
+
+      // Browser test, location 1, device 1
+      getTestCase(browserTest, '5', {location: locations[0], device: devices.chrome}),
+      // Browser test, location 1, device 2
+      getTestCase(browserTest, '6', {location: locations[0], device: devices.firefox}),
+      // Browser test, location 2, device 1
+      getTestCase(browserTest, '7', {location: locations[1], device: devices.chrome}),
+      // Browser test, location 2, device 2
+      getTestCase(browserTest, '8', {location: locations[1], device: devices.firefox}),
+      // Browser test, location 1, (timed out)
+      getTestCase(browserTest, '9', {location: locations[0], timedOut: true}),
+      // Browser test, location 1, (timed out)
+      getTestCase(browserTest, '10', {location: locations[0], timedOut: true}),
+      // Browser test, location 2, (timed out)
+      getTestCase(browserTest, '11', {location: locations[1], timedOut: true}),
+      // Browser test, location 2, (timed out)
+      getTestCase(browserTest, '12', {location: locations[1], timedOut: true}),
+    ]
+
+    const caseNames = testCases.map((testCase) => testCase.$.name)
+
+    const uniqueCaseNames = [...new Set(caseNames)]
+    expect(uniqueCaseNames.length).toEqual(caseNames.length)
+
+    expect(caseNames).toStrictEqual([
+      // API tests.
+      'Test name - id: aaa-aaa-aaa - location: aws:eu-central-1',
+      'Test name - id: aaa-aaa-aaa - location: aws:eu-central-2',
+      'Test name - id: aaa-aaa-aaa - location: aws:eu-central-1 - result id: 3 (not yet received)',
+      'Test name - id: aaa-aaa-aaa - location: aws:eu-central-2 - result id: 4 (not yet received)',
+
+      // Browser tests.
+      'Test name - id: bbb-bbb-bbb - location: aws:eu-central-1 - device: chrome.laptop_large',
+      'Test name - id: bbb-bbb-bbb - location: aws:eu-central-1 - device: firefox.laptop_large',
+      'Test name - id: bbb-bbb-bbb - location: aws:eu-central-2 - device: chrome.laptop_large',
+      'Test name - id: bbb-bbb-bbb - location: aws:eu-central-2 - device: firefox.laptop_large',
+      'Test name - id: bbb-bbb-bbb - location: aws:eu-central-1 - result id: 9 (not yet received)',
+      'Test name - id: bbb-bbb-bbb - location: aws:eu-central-1 - result id: 10 (not yet received)',
+      'Test name - id: bbb-bbb-bbb - location: aws:eu-central-2 - result id: 11 (not yet received)',
+      'Test name - id: bbb-bbb-bbb - location: aws:eu-central-2 - result id: 12 (not yet received)',
+    ])
+  })
+
+  test('all columns are filled in the test report table', () => {
+    const baseResult = getFailedBrowserResult()
+    const result: Result = {
+      ...baseResult,
+      test: {...baseResult.test, suite: 'tests.json'},
+    }
+
+    reporter['resultEnd'](result, '')
+
+    const testCase = reporter['json'].testsuites.testsuite[0].testcase[0]
+
+    const name = 'Test name - id: abc-def-ghi - location: Location name - device: chrome.laptop_large'
+    const failure = {
+      $: {
+        allowFailure: 'false',
+        step: 'Assert',
+        type: 'assertion',
+      },
+      _: 'Step failure',
+    }
+
+    expect(testCase.$).toHaveProperty('classname', 'tests.json') // Suite
+    expect(testCase.$).toHaveProperty('name', name) // Name
+    expect(testCase.$).toHaveProperty('file', 'tests.json') // Filename
+    expect(testCase.failure).toStrictEqual([failure]) // Status
+    expect(testCase.$).toHaveProperty('time', 20) // Duration
+  })
+
+  test('the icon in the Status column is correct (blocking vs. non-blocking)', () => {
+    // Mimics how GitLab chooses the Status icon.
+    const getStatusIcon = (testCase: XMLTestCase) => {
+      if (testCase.failure.length > 0) {
+        return '❌'
+      }
+      if (testCase.error.length > 0) {
+        return '❗️'
+      }
+      if (testCase.skipped.length > 0) {
+        return '⏩'
+      }
+
+      return '✅'
+    }
+
+    reporter['testTrigger'](globalTestMock, '', ExecutionRule.SKIPPED, {})
+
+    reporter['resultEnd']({...getFailedBrowserResult(), executionRule: ExecutionRule.BLOCKING}, '')
+    reporter['resultEnd']({...getFailedBrowserResult(), executionRule: ExecutionRule.NON_BLOCKING}, '')
+    reporter['resultEnd']({...getBrowserResult('', globalTestMock), executionRule: ExecutionRule.BLOCKING}, '')
+
+    const [testCaseSkipped, testCaseBlocking, testCaseNonBlocking, testCasePassed] = reporter[
+      'json'
+    ].testsuites.testsuite[0].testcase
+
+    expect(getStatusIcon(testCaseSkipped)).toBe('⏩')
+    expect(getStatusIcon(testCaseBlocking)).toBe('❌')
+    expect(getStatusIcon(testCaseNonBlocking)).toBe('❗️')
+    expect(getStatusIcon(testCasePassed)).toBe('✅')
+  })
+
+  test('api errors are nicely rendered', () => {
+    const errorMessage = JSON.stringify([
+      {
+        actual: 1234,
+        operator: 'lessThan',
+        target: 1000,
+        type: 'responseTime',
+      },
+    ])
+    const failure = {code: 'INCORRECT_ASSERTION', message: errorMessage}
+
+    const baseResult = getApiResult('1', globalTestMock)
+    const result: Result = {
+      ...baseResult,
+      passed: false,
+      result: {...baseResult.result, failure},
+    }
+
+    reporter['resultEnd'](result, '')
+
+    const testCase = reporter['json'].testsuites.testsuite[0].testcase[0]
+    expect(testCase.failure).toStrictEqual([
+      {
+        $: {step: 'Test name', type: 'INCORRECT_ASSERTION'},
+        _: '- Assertion failed:\n    ▶ responseTime should be less than 1000. Actual: 1234',
+      },
+    ])
+  })
+})
