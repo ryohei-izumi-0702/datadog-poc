@@ -13,7 +13,7 @@ const minifiedpath = process.env.AWS_S3_URL;
 const repo = process.env.DATADOG_GIT_REPO;
 
 // const cmd = `npx datadog-ci sourcemaps upload ${sourcemappath} --service ${service} --minified-path-prefix ${minifiedpath} --release-version ${version} --repository-url ${repo} --project-path=./src/ `;
-const cmd = `npx datadog-ci sourcemaps upload ${sourcemappath} --service ${service} --minified-path-prefix ${minifiedpath} --release-version ${version} --max-concurrency 100 --project-path=./src/ --repository-url ${repo} `; //  --disable-git
+const cmd = `npx datadog-ci sourcemaps upload ${sourcemappath} --service ${service} --minified-path-prefix ${minifiedpath} --release-version ${version} --max-concurrency 100 --project-path=./src/ --repository-url ${repo} `;
 console.log(cmd);
 
 exec(cmd, (error, stdout, stderr) => {

@@ -37,7 +37,7 @@
     "@angular/cli": "~15.1.1",
     "@angular/compiler-cli": "^15.1.0",
     "@aws-sdk/client-s3": "^3.438.0",
-    "@datadog/datadog-ci": "./datadog-ci-master",
+    "@datadog/datadog-ci": "^2.23.0",
     "@paralleldrive/cuid2": "^2.2.2",
     "@types/jasmine": "~4.3.0",
     "aws-sdk": "^2.1484.0",

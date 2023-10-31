@@ -2164,8 +2164,10 @@
     "@datadog/browser-core" "5.1.0"
     "@datadog/browser-rum-core" "5.1.0"
 
-"@datadog/datadog-ci@./datadog-ci-master":
+"@datadog/datadog-ci@^2.23.0":
   version "2.23.0"
+  resolved "https://registry.yarnpkg.com/@datadog/datadog-ci/-/datadog-ci-2.23.0.tgz#e3d67ce88fda160eda699ab2bb83aede24c63e80"
+  integrity sha512-cwH2nz97RRgfwhYmKR523WgchRbyWemQJpjBsFikMfgxdYf9vpksBvl4t0sQ7zd1Oamr72DAhHq8nYJCy8InQA==
   dependencies:
     "@aws-sdk/client-cloudwatch-logs" "^3.427.0"
     "@aws-sdk/client-iam" "^3.427.0"
