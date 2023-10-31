@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Observable } from 'rxjs';
 import { DatadogService } from './datadog.service';
 
 @Component({
@@ -21,13 +22,23 @@ export class AppComponent implements OnInit {
   /**
    *
    *
+   * @type {Observable<string>}
    * @memberof AppComponent
    */
-  ngOnInit(): void {
-    this._datadog.init();
-  }
+  public version$: Observable<string> = this._datadog.version$;
+
+  /**
+   *
+   *
+   * @memberof AppComponent
+   */
+  ngOnInit(): void {}
 
   onClick() {
-    throw new Error('Error');
+    alert('onClick');
+    const err = new Error('Error');
+    this._datadog.logger.info('Button clicked', { name: 'buttonName', id: 123 });
+    this._datadog.logger.error('onClick error', err);
+    throw err;
   }
 }

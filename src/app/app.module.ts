@@ -1,5 +1,6 @@
 import { NgModule, ErrorHandler as DefaultErrorHandler, Provider } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { HttpClientModule } from '@angular/common/http';
 import { DatadogService } from './datadog.service';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -16,7 +17,8 @@ export const AppErrorHandlerProvider: Provider = {
   ],
   imports: [
     BrowserModule,
-    AppRoutingModule
+    AppRoutingModule,
+    HttpClientModule,
   ],
   providers: [AppErrorHandlerProvider],
   bootstrap: [AppComponent]
