@@ -1,0 +1,60 @@
+{
+  "name": "aswbe_datadog_poc",
+  "version": "7.7.12",
+  "datadog": {
+    "version": "nemfl5poe4ookik4ffb0cim3",
+    "apikey": "622bc35e76ad9c66403990668cc78bdf",
+    "appkey": "2bbd01b032b818a3bab6bfc0574fe9797739f2cb",
+    "clienttoken": "pub619c32ad7d532e051c1884ca88f3c69a",
+    "service": "aswbe:spa:poc",
+    "env": "dev",
+    "site": "ap1.datadoghq.com",
+    "sourcemappath": "./dist/datadog-poc",
+    "minifiedpath": "http://localhost:4300"
+  },
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --open",
+    "build": "ng build --configuration production --build-optimizer --stats-json --vendor-chunk --aot=true --source-map=true",
+    "sourcemap-upload": "DATADOG_SITE=$npm_package_datadog_site DATADOG_API_KEY=$npm_package_datadog_apikey npx datadog-ci sourcemaps upload $npm_package_datadog_sourcemappath --service $npm_package_datadog_service --minified-path-prefix $npm_package_datadog_minifiedpath --release-version $npm_package_datadog_version --disable-git",
+    "_postbuild": "yarn docker:build && yarn sourcemap-upload",
+    "docker:build": "docker build -t angular-datadog-poc-nginx .",
+    "docker:run": "docker run -d -p 4300:80 angular-datadog-poc-nginx",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^15.1.0",
+    "@angular/common": "^15.1.0",
+    "@angular/compiler": "^15.1.0",
+    "@angular/core": "^15.1.0",
+    "@angular/forms": "^15.1.0",
+    "@angular/platform-browser": "^15.1.0",
+    "@angular/platform-browser-dynamic": "^15.1.0",
+    "@angular/router": "^15.1.0",
+    "@datadog/browser-logs": "^5.0.0",
+    "dotenv": "^16.3.1",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.12.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^15.1.1",
+    "@angular/cli": "~15.1.1",
+    "@angular/compiler-cli": "^15.1.0",
+    "@datadog/datadog-ci": "^2.22.1",
+    "@paralleldrive/cuid2": "^2.2.2",
+    "@types/jasmine": "~4.3.0",
+    "cross-var": "^1.1.0",
+    "dotenv-cli": "^7.3.0",
+    "jasmine-core": "~4.5.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.1.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.0.0",
+    "typescript": "~4.9.4",
+    "uuid": "^9.0.1"
+  }
+}
