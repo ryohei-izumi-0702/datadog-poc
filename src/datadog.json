@@ -1,1 +1,8 @@
-{"applicationId":"4e8bc498-e5b3-4b8e-88d6-27a304d70fbc","clientToken":"pub31b0133c3129a9715414dd1fb69b99be","forwardErrorsToLogs":true,"service":"aswbe:spa:poc","env":"dev","site":"ap1.datadoghq.com"}
+{
+  "applicationId": "4e8bc498-e5b3-4b8e-88d6-27a304d70fbc",
+  "clientToken": "pub31b0133c3129a9715414dd1fb69b99be",
+  "forwardErrorsToLogs": true,
+  "service": "aswbe:spa:poc",
+  "env": "dev",
+  "site": "ap1.datadoghq.com"
+}

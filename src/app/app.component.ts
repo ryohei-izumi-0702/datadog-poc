@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { DatadogService } from './datadog.service';
 
@@ -15,7 +16,10 @@ export class AppComponent implements OnInit {
    * @param {DatadogService} _datadog
    * @memberof AppComponent
    */
-  constructor(private _datadog: DatadogService) {
+  constructor(
+    private _http: HttpClient,
+    private _datadog: DatadogService
+  ) {
 
   }
 
@@ -35,6 +39,7 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {}
 
   onClick() {
+    this._http.get('ssdsdfsdf').pipe().subscribe();
     alert('onClick');
     const err = new Error('Error');
     this._datadog.logger.info('Button clicked', { name: 'buttonName', id: 123 });

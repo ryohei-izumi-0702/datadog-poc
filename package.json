@@ -4,11 +4,11 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --open --port 4500",
-    "build": "ng build --configuration production --build-optimizer --stats-json --vendor-chunk --aot=true --source-map=true",
     "prebuild": "node ./version.mjs",
+    "build": "ng build --configuration production --build-optimizer --stats-json --vendor-chunk --aot=true --source-map=true",
+    "postbuild": "yarn s3-upload && yarn sourcemap-upload",
     "sourcemap-upload": "node ./sourcemap-upload.mjs",
     "s3-upload": "node ./deploy.mjs",
-    "postbuild": "yarn s3-upload && yarn sourcemap-upload",
     "docker:build": "docker build -t angular-datadog-poc-nginx .",
     "docker:run": "docker run -d -p 4300:80 angular-datadog-poc-nginx",
     "watch": "ng build --watch --configuration development",

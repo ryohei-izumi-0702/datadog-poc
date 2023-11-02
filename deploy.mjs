@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, lstatSync } from 'node:fs';
 import { join, dirname, sep } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { fileTypeFromFile, fileTypeFromBlob }  from 'file-type';
+// import { fileTypeFromFile, fileTypeFromBlob }  from 'file-type';
 import * as mime from 'mime';
 import * as mimetypes from 'mime-types';
 
