@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError, catchError } from 'rxjs';
 import { DatadogService } from './datadog.service';
 
 @Component({
@@ -39,7 +39,9 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {}
 
   onClick() {
-    this._http.get('ssdsdfsdf').pipe().subscribe();
+    this._http.get('ssdsdfsdf').pipe(
+      catchError(err => throwError(err)),
+    ).subscribe();
     alert('onClick');
     const err = new Error('Error');
     this._datadog.logger.info('Button clicked', { name: 'buttonName', id: 123 });
