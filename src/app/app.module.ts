@@ -8,6 +8,7 @@ import { AppErrorHandler as CustomErrorHandler } from './app-error-handler';
 export const AppErrorHandlerProvider: Provider = {
   provide: DefaultErrorHandler,
   useClass: CustomErrorHandler,
+  multi: false,
   deps: [DatadogService],
 };
 
