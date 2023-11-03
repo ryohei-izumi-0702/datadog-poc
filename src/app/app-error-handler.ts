@@ -63,7 +63,7 @@ export class AppErrorHandler implements ErrorHandler {
    * @memberof AppErrorHandler
    */
   private _findContextError(wrappedError: IErrorLike): IErrorLike {
-    let error: IErrorLike | undefined = this._getOriginalError(wrappedError);
+    let error: IErrorLike | undefined;
     while (error && this._getOriginalError(error)) {
       error = this._getOriginalError(error);
     }
@@ -72,14 +72,14 @@ export class AppErrorHandler implements ErrorHandler {
       return error;
     }
 
-    error = this._getRejection(wrappedError);
-    while (error && this._getRejection(error)) {
-      error = this._getRejection(error);
-    }
+    // error = this._getRejection(wrappedError);
+    // while (error && this._getRejection(error)) {
+    //   error = this._getRejection(error);
+    // }
 
-    if (error instanceof Error) {
-      return error;
-    }
+    // if (error instanceof Error) {
+    //   return error;
+    // }
 
     return wrappedError;
   }
