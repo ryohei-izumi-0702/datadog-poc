@@ -354,7 +354,8 @@
   <h1>version: {{ version$ | async }}</h1>
   <h2>Resources</h2>
   <p>Here are some links to help you get started:</p>
-  <button (click)="onClick()">raise error</button>
+  <button (click)="onClick(0)">raise error</button>
+  <button (click)="onClick(1)">raise error(http)</button>
 
   <div class="card-container">
     <a class="card" target="_blank" rel="noopener" href="https://angular.io/tutorial">

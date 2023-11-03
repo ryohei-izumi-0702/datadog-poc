@@ -43,15 +43,20 @@ export class AppErrorHandler implements ErrorHandler {
    * @memberof AppErrorHandler
    */
   public handleError(wrappedError: IErrorLike): void {
-    const error: IErrorLike = this._findContextError(wrappedError);
-    console.log(wrappedError, error);
-    const isError = error instanceof Error;
-    const message: string = this._getErrorMessage(error);
-    if (error instanceof HttpErrorResponse) {
-      console.error(Error(error.message));
-    } else {
-      isError ? console.error(error) : this._datadog.logger.error(message, error as Error);
-    }
+    console.log(`wrappedError.ngOriginalError=${wrappedError.ngOriginalError}`)
+    console.log(`wrappedError.originalError=${wrappedError.originalError}`)
+    console.log(`wrappedError.rejection=${wrappedError.rejection}`)
+    console.log(`wrappedError.isError=${wrappedError instanceof Error}`)
+    console.error(wrappedError) ;
+    // const error: IErrorLike = this._findContextError(wrappedError);
+    // console.log(wrappedError, error);
+    // const isError = error instanceof Error;
+    // const message: string = this._getErrorMessage(error);
+    // if (error instanceof HttpErrorResponse) {
+    //   error instanceof HttpErrorResponse && console.error(Error(error.message));
+    // } else {
+    //   isError ? console.error(error) : this._datadog.logger.error(message, error as Error);
+    // }
   }
 
   /**
@@ -67,8 +72,10 @@ export class AppErrorHandler implements ErrorHandler {
    * @memberof AppErrorHandler
    */
   private _findContextError(wrappedError: IErrorLike): IErrorLike {
-    let error: IErrorLike | undefined;
+    let error: IErrorLike | undefined = wrappedError;
+    console.log(wrappedError);
     while (error && this._getOriginalError(error)) {
+      console.log(error);
       error = this._getOriginalError(error);
     }
 

@@ -38,17 +38,23 @@ export class AppComponent implements OnInit {
    */
   ngOnInit(): void {}
 
-  onClick() {
-    const y = 3 / 0;
-    const arr: number[] = [1, 2, 3];
-    const z = arr.find(a => a === 4);
-    this._http.get('ssdsdfsdf').pipe(
-      catchError(err => throwError(err)),
-    ).subscribe();
+  onClick(args: 0 | 1 = 1) {
     alert('onClick');
-    const err = new Error('Error');
-    this._datadog.logger.info('Button clicked', { name: 'buttonName', id: 123 });
-    this._datadog.logger.error('onClick error', err);
-    throw err;
+    if (args === 0) {
+      try {
+        const y: unknown = undefined;
+        JSON.parse(y as string);
+      } catch (err) {
+        this._datadog.logger.info('Button clicked', { name: 'buttonName', id: 123 });
+        this._datadog.logger.error('onClick error', err as Error);
+        throw err;
+      }
+    } else {
+      this._http.get('ssdsdfsdf').pipe(
+        catchError(err => throwError(err)),
+      ).subscribe();
+    }
+
+    // const err = new Error('Error');
   }
 }
