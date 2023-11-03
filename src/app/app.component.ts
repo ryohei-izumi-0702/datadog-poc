@@ -39,6 +39,9 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {}
 
   onClick() {
+    const y = 3 / 0;
+    const arr: number[] = [1, 2, 3];
+    const z = arr.find(a => a === 4);
     this._http.get('ssdsdfsdf').pipe(
       catchError(err => throwError(err)),
     ).subscribe();

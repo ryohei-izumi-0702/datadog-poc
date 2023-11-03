@@ -21,7 +21,7 @@ export const AppErrorHandlerProvider: Provider = {
     AppRoutingModule,
     HttpClientModule,
   ],
-  providers: [], //AppErrorHandlerProvider
+  providers: [AppErrorHandlerProvider],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

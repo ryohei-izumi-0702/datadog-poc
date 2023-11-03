@@ -7,7 +7,6 @@ import type { Logger, LogsInitConfiguration } from '@datadog/browser-logs';
 import { Observable, concatMap, map, take, tap } from 'rxjs';
 // import * as pkg from '../../package.json';
 
-
 interface IVersion {
   version: string;
 }
