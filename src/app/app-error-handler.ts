@@ -46,7 +46,7 @@ export class AppErrorHandler implements ErrorHandler {
     const isError = error instanceof Error;
     const message: string = this._getErrorMessage(error);
 
-    isError ? console.log(error) : this._datadog.logger.error(message, error as Error);
+    isError ? console.error(error) : this._datadog.logger.error(message, error as Error);
   }
 
   /**
