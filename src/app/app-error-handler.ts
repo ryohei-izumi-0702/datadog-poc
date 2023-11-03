@@ -1,5 +1,6 @@
 import { Injectable, Injector, ErrorHandler, NgZone } from '@angular/core';
 import { DatadogService } from './datadog.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 /**
  *
@@ -46,6 +47,9 @@ export class AppErrorHandler implements ErrorHandler {
     console.log(wrappedError, error);
     const isError = error instanceof Error;
     const message: string = this._getErrorMessage(error);
+    if (error instanceof HttpErrorResponse) {
+      console.log(error);
+    }
 
     isError ? console.error(error) : this._datadog.logger.error(message, error as Error);
   }
