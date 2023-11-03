@@ -43,6 +43,7 @@ export class AppErrorHandler implements ErrorHandler {
    */
   public handleError(wrappedError: IErrorLike): void {
     const error: IErrorLike = this._findContextError(wrappedError);
+    console.log(wrappedError, error);
     const isError = error instanceof Error;
     const message: string = this._getErrorMessage(error);
 
